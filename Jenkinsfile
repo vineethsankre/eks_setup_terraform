@@ -1,0 +1,109 @@
+
+pipeline {
+    agent any
+
+    environment {
+        // Define environment variables
+        AWS_ACCESS_KEY_ID = credentials('aws-key') // AWS credentials (if needed)
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret') // AWS credentials (if needed)
+    }
+
+    stages {
+        stage('CLONE SCM') {
+            steps {
+                echo 'Cloning code from GitHub...'
+                git branch: 'main', url: 'https://github.com/adarsh0331/ultimate-devops-project-aws.git'
+            }
+        }
+
+       stage('Install Terraform') {
+    steps {
+        script {
+            sh '''
+                # Set Terraform version
+                TERRAFORM_VERSION="1.6.6"
+
+                # Install unzip if not installed
+                if ! command -v unzip &> /dev/null; then
+                    echo "Installing unzip..."
+                    sudo apt-get update && sudo apt-get install -y unzip
+                fi
+
+                # Check if Terraform is already installed
+                if ! command -v terraform &> /dev/null; then
+                    echo "Installing Terraform..."
+                    curl -LO https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+                    unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+                    sudo mv terraform /usr/local/bin/
+                    rm terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+                else
+                    echo "Terraform is already installed."
+                fi
+
+                # Verify installation
+                terraform --version
+            '''
+        }
+    }
+}
+
+
+        stage('Terraform Init') {
+            steps {
+                // Initialize Terraform
+                echo 'Initializing Terraform...'
+            sh '''
+                        cd eks-install
+                        terraform init
+                    '''
+                
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                // Run Terraform plan
+                echo 'Running Terraform Plan...'
+                 sh '''
+                        cd eks-install
+                        terraform plan -out=tfplan
+                    '''
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                // Apply Terraform changes
+                echo 'Applying Terraform changes...'
+                 sh '''
+                        cd eks-install
+                      terraform apply -auto-approve tfplan
+                    '''
+            }
+        }
+
+        stage('Retrieve Public IP') {
+            steps {
+                script {
+                    // Retrieve the public_ip output from Terraform
+                    echo 'Retrieving Terraform Outputs...'
+                    def publicIp = sh(script: 'terraform output -raw public_ip', returnStdout: true).trim()
+                    echo "Public IP of the EC2 instance: ${publicIp}"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Terraform deployment completed successfully!'
+        }
+        failure {
+            echo 'Terraform deployment failed. Check the logs for details.'
+        }
+        always {
+            // Clean up workspace
+            cleanWs()
+        }
+    }
+}

@@ -1,42 +1,40 @@
-# Fetch default VPC
-data "aws_vpc" "default" {
-  default = true
-}
-
-# Fetch default subnets from the default VPC
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
-}
-
-# Get subnet details (for availability zone info)
-data "aws_subnet" "default" {
-  count = length(data.aws_subnets.default.ids)
-  id    = data.aws_subnets.default.ids[count.index]
-}
-
-module "eks" {
-  source  = "terraform-aws-modules/eks/aws"
-  version = "~> 20.0"
-
-  cluster_name    = var.cluster_name
-  cluster_version = "1.27"
-  subnet_ids      = data.aws_subnets.default.ids
-  vpc_id          = data.aws_vpc.default.id
-
-  eks_managed_node_groups = {
-    default = {
-      instance_types = ["t3.medium"]
-      desired_size   = 2
-      max_size       = 3
-      min_size       = 1
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
     }
   }
 
-  tags = {
-    "Environment" = "dev"
-    "Terraform"   = "true"
+  backend "s3" {
+    bucket         = "cluster1-terraform-eks-state-s3-bucket1"
+    key            = "terraform.tfstate"
+    region         = "ap-south-1"
+    dynamodb_table = "terraform-eks-state-locks"
+    encrypt        = true
   }
+}
+
+provider "aws" {
+  region = var.region
+}
+
+module "vpc" {
+  source = "./modules/vpc"
+
+  vpc_cidr             = var.vpc_cidr
+  availability_zones   = var.availability_zones
+  private_subnet_cidrs = var.private_subnet_cidrs
+  public_subnet_cidrs  = var.public_subnet_cidrs
+  cluster_name         = var.cluster_name
+}
+
+module "eks" {
+  source = "./modules/eks"
+
+  cluster_name    = var.cluster_name
+  cluster_version = var.cluster_version
+  vpc_id          = module.vpc.vpc_id
+  subnet_ids      = module.vpc.private_subnet_ids
+  node_groups     = var.node_groups
 }
