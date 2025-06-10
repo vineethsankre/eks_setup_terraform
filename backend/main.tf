@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "cluster1-terraform-eks-state-s3-buckt"
+  bucket = "mycluster-terraform-eks-state-s3-buckt"
 
   lifecycle {
     prevent_destroy = false
