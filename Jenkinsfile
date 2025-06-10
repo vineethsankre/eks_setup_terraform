@@ -78,17 +78,6 @@ pipeline {
                     '''
             }
         }
-
-        stage('Retrieve Public IP') {
-            steps {
-                script {
-                    // Retrieve the public_ip output from Terraform
-                    echo 'Retrieving Terraform Outputs...'
-                    def publicIp = sh(script: 'terraform output -raw public_ip', returnStdout: true).trim()
-                    echo "Public IP of the EC2 instance: ${publicIp}"
-                }
-            }
-        }
     }
 
     post {
