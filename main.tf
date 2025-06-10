@@ -7,7 +7,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "cluster1-terraform-eks-state-s3-buckt"
+    bucket         = "mycluster-terraform-eks-state-s3-buckt"
     key            = "terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "terraform-eks-state-locks"
