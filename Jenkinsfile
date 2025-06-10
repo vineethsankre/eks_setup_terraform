@@ -4,15 +4,15 @@ pipeline {
 
     environment {
         // Define environment variables
-        AWS_ACCESS_KEY_ID = credentials('aws-key') // AWS credentials (if needed)
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret') // AWS credentials (if needed)
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key') // AWS credentials (if needed)
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key') // AWS credentials (if needed)
     }
 
     stages {
         stage('CLONE SCM') {
             steps {
                 echo 'Cloning code from GitHub...'
-                git branch: 'main', url: 'https://github.com/jadalaramani/eks_setup_terraform.git'
+                git branch: 'main', url: 'https://github.com/vineethsankre/eks_setup_terraform.git'
             }
         }
 
